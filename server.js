@@ -1,47 +1,43 @@
 // Dependencies
-var bodyParser = require("body-parser");
-var mongoose = require("mongoose");
-var logger = require("morgan");
+const express = require("express");
+const bodyParser = require("body-parser"); 
+const mongoose = require("mongoose"); 
+const request = require("request"); 
+const cheerio = require("cheerio"); 
 
-// Initialize Express app
-var express = require("express");
-var app = express();
+// Require models
+const db = require("./models");
 
-app.use(logger("dev"));
-app.use(
-  bodyParser.urlencoded({
-    extended: false
-  })
-);
+// Port configuration 
+const PORT = process.env.PORT || process.argv[2] || 8080;
 
-app.use(express.static(process.cwd() + "/public"));
+// Initialize Express
+const app = express();
 
-// Require set up handlebars
-var exphbs = require("express-handlebars");
-app.engine(
-  "handlebars",
-  exphbs({
-    defaultLayout: "main"
-  })
-);
+// Use body-parser for handling form submissions
+app.use(bodyParser.urlencoded({ extended: true }));
+
+// Handlebars
+const exphbs = require("express-handlebars");
+app.engine("handlebars", exphbs({ defaultLayout: "main" }));
 app.set("view engine", "handlebars");
 
-// Connect to MongoDB
-const MONGODB_URI =
-  process.env.MONGODB_URI || "mongodb://localhost/newsscraper";
-mongoose.connect(MONGODB_URI, { useNewUrlParser: true });
+// Use express.static to serve the public folder as a static directory
+app.use(express.static("public"));
 
-var db = mongoose.connection;
-db.on("error", console.error.bind(console, "Connection error:"));
-db.once("open", function() {
-  console.log("Connected to Mongoose!");
-});
+// Controllers
+const router = require("./controller/controller.js");
+app.use(router);
 
-var routes = require("./controller/controller.js");
-app.use("/", routes);
+// Connect to the MongoDB
+const MONGODB_URI = process.env.MONGODB_URI || "mongodb://localhost/mongoHeadlines";
 
-// Create localhost port
-var port = process.env.PORT || 3000;
-app.listen(port, function() {
-  console.log("Listening on PORT " + port);
+// Set mongoose to leverage built in JavaScript ES6 Promises
+// Connect to the MongoDB
+mongoose.Promise = Promise;
+mongoose.connect(MONGODB_URI);
+
+// Start the server
+app.listen(PORT, function () {
+    console.log(`App is running on port: ${PORT}`);
 });
